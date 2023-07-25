@@ -20,10 +20,11 @@ def download(cs_file):
         src_file_name=prefix+cs_file+'v'+dic[cs_file]+'.pdf'
         dest_file_name=os.path.join('./data',year,month,cs_file)+'.pdf'
 
-        cmd="gcloud alpha storage cp "+src_file_name+" "+dest_file_name
+        # cmd="gcloud alpha storage cp "+src_file_name+" "+dest_file_name
+        cmd="gsutil -m cp "+src_file_name+" "+dest_file_name
         os.system(cmd+" > /dev/null 2>%1")
     
-        
+
 
 if __name__ == "__main__":
 
@@ -111,4 +112,3 @@ if __name__ == "__main__":
             file.write('\n'.join(not_downloaded))
         print("the number of papers : ",number," | not downloaded : ",len(not_downloaded))
         
-

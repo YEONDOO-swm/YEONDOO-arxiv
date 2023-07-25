@@ -1,7 +1,7 @@
-#years="20 21 22 23"
-years=$1
-# months="01 02 03 04 05 06 07 08 09 10 11 12"
-months="07"
+years="14 15 16 17 18 19 20 21"
+# years=$1
+months="01 02 03 04 05 06 07 08 09 10 11 12"
+# months="07"
 mkdir ./data
 mkdir ./yymmlist
 mkdir ./remain
@@ -20,5 +20,6 @@ do
             fi
                 echo "txt is already exists"
 	done
-	python3 main.py $1
+	# python3 main.py $1
+    python3 main.py $year
 done
