@@ -18,7 +18,7 @@ def download(cs_file):
     
     if cs_file in dic.keys():
         src_file_name=prefix+cs_file+'v'+dic[cs_file]+'.pdf'
-        dest_file_name=os.path.join('./data',year,month,cs_file)+'.pdf'
+        dest_file_name=os.path.join('./data',year,month,cs_file+'v'+dic[cs_file])+'.pdf'
 
         # cmd="gcloud alpha storage cp "+src_file_name+" "+dest_file_name
         cmd="gsutil -m cp "+src_file_name+" "+dest_file_name
