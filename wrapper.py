@@ -34,13 +34,14 @@ gc.collect()
 # del df
 # gc.collect()
 
+os.environ['OPENAI_API_KEY']="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"
 embeddings = OpenAIEmbeddings()
 
 
 encoding = tiktoken.encoding_for_model("text-embedding-ada-002")
 
 
-os.environ['OPENAI_API_KEY']="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"
+
 def Wrapper(shared_list,doc_file_name):
     
     id=doc_file_name.split('v')[0]
@@ -128,8 +129,8 @@ if __name__ == "__main__":
                     verify_certs = False,
                     ssl_assert_hostname = False,
                     ssl_show_warn = False,
-                    index_name="arxiv_test",# with metadata source
-                    bulk_size=2000
+                    index_name="arxiv_test2",# with metadata source
+                    bulk_size=8000
                 )
                 time.sleep(60)
             # manager2 = Manager()
