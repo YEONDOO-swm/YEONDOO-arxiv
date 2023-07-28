@@ -19,6 +19,9 @@ import sys
 from concurrent.futures import ProcessPoolExecutor
 from langchain.vectorstores import OpenSearchVectorSearch
 from langchain.embeddings import OpenAIEmbeddings
+
+from langchain.text_splitter import TokenTextSplitter
+import time
 # Get a list of dicts and convert into a pandas df.
 arxiv_data = []
 for line in open('../arxiv-metadata-oai-snapshot.json', 'r'):
@@ -30,6 +33,9 @@ del arxiv_data
 gc.collect()
 # del df
 # gc.collect()
+
+embeddings = OpenAIEmbeddings()
+
 
 encoding = tiktoken.encoding_for_model("text-embedding-ada-002")
 
@@ -75,16 +81,7 @@ def num_tokens_from_doc(shared_list2,doc) -> int:
     num_tokens = len(encoding.encode(string, allowed_special={"<|endoftext|>"}))
     shared_list2.append(num_tokens)
 
-def num_tokens_from_doc(shared_list2,doc) -> int:
-    """Returns the number of tokens in a text string."""
-    string=doc.page_content
-    num_tokens = len(encoding.encode(string, allowed_special={"<|endoftext|>"}))
-    shared_list2.append(num_tokens)
-def num_tokens_from_doc2(doc) -> int:
-    """Returns the number of tokens in a text string."""
-    string=doc.page_content
-    num_tokens = len(encoding.encode(string, allowed_special={"<|endoftext|>"}))
-    
+
 
 if __name__ == "__main__":
     basedir="/home/soma4/YEONDOO-arxiv-with-version/YEONDOO-arxiv/data/"
@@ -106,25 +103,35 @@ if __name__ == "__main__":
             shared_list = manager.list()
             process_map(partial(Wrapper, shared_list),pdf_list,max_workers=5,chunksize=chunksize)
 
-            text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
+            # text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
+            text_splitter = TokenTextSplitter(model_name="text-embedding-ada-002",allowed_special={"<|endoftext|>"},chunk_size=250, chunk_overlap=0)
             texts = text_splitter.split_documents(list(shared_list))
 
-            embeddings = OpenAIEmbeddings()
+            r=len(texts) // 4000
+            len_texts=len(texts)
 
+            splitted_texts=[]
+            for i in range(r+1):
+                start=i*4000
+                end=start+4000
+                if end>len_texts:
+                    end=len_texts
+                splitted_texts.append(texts[start:end])
+            for splitted_text in tqdm(splitted_texts):
 
-
-            docsearch = OpenSearchVectorSearch.from_documents(
-                texts,
-                embeddings,
-                opensearch_url="https://search-yeondoo-opensearch-2r3sj6ok7iowthxkgjrnhxsyv4.ap-northeast-2.es.amazonaws.com",
-                http_auth=("admin", "qiQduz-pyrhab-hexzo4"),
-                use_ssl = False,
-                verify_certs = False,
-                ssl_assert_hostname = False,
-                ssl_show_warn = False,
-                index_name="arxiv_test",# with metadata source
-                bulk_size=2000
-            )
+                docsearch = OpenSearchVectorSearch.from_documents(
+                    splitted_text,
+                    embeddings,
+                    opensearch_url="https://search-yeondoo-opensearch-2r3sj6ok7iowthxkgjrnhxsyv4.ap-northeast-2.es.amazonaws.com",
+                    http_auth=("admin", "qiQduz-pyrhab-hexzo4"),
+                    use_ssl = False,
+                    verify_certs = False,
+                    ssl_assert_hostname = False,
+                    ssl_show_warn = False,
+                    index_name="arxiv_test",# with metadata source
+                    bulk_size=2000
+                )
+                time.sleep(60)
             # manager2 = Manager()
             # shared_list2 = manager2.list()
             # # process_map(partial(num_tokens_from_doc, shared_list2),texts,max_workers=5,chunksize=chunksize)
