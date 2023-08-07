@@ -35,13 +35,26 @@ gc.collect()
 # gc.collect()
 
 os.environ['OPENAI_API_KEY']="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"
-embeddings = OpenAIEmbeddings()
+embeddings = OpenAIEmbeddings(disallowed_special=())
+# embeddings = OpenAIEmbeddings()
 
 
 encoding = tiktoken.encoding_for_model("text-embedding-ada-002")
 
 
-
+# doc = OpenSearchVectorSearch(
+#                 opensearch_url="https://search-yeondoo-opensearch-2r3sj6ok7iowthxkgjrnhxsyv4.ap-northeast-2.es.amazonaws.com",
+#                 index_name="arxiv_test2",
+#                 # index_name="allcontent3",
+#                 embedding_function=embeddings,
+#                 http_auth=("admin", "qiQduz-pyrhab-hexzo4"),
+#                 use_ssl = False,
+#                 verify_certs = False,
+#                 ssl_assert_hostname = False,
+#                 ssl_show_warn = False,
+#                 bulk_size=8000,
+#                 is_aoss=False
+# )
 def Wrapper(shared_list,doc_file_name):
     
     id=doc_file_name.split('v')[0]
@@ -79,7 +92,7 @@ def Wrapper(shared_list,doc_file_name):
 def num_tokens_from_doc(shared_list2,doc) -> int:
     """Returns the number of tokens in a text string."""
     string=doc.page_content
-    num_tokens = len(encoding.encode(string, allowed_special={"<|endoftext|>"}))
+    num_tokens = len(encoding.encode(string, disallowed_special=()))
     shared_list2.append(num_tokens)
 
 
@@ -88,24 +101,54 @@ if __name__ == "__main__":
     basedir="/home/soma4/YEONDOO-arxiv-with-version/YEONDOO-arxiv/data/"
     # years=["14","15","16","17","18","19","20","21","22","23"]
     # years=["16"]
-    years=["14"]
-    months=["01","02","03","04","05","06","07","08","09","10","11","12"]
-    # months=["06","07","08","09","10","11","12"]
+    # years=["14"]
+    # years=["15","16"]
+    years=["23"]
+    months=["04","05","06","07"]
+    # months=["01","02","03","04","05","06","07","08","09","10","11","12"]
+    # months=["05","06","07","08","09","10","11","12"]
+    # months=["04"]
     for year in (years):
         print(year)
         for month in months:
             print(month)
             path_data=os.path.join(basedir,year,month)
             pdf_list=os.listdir(path_data)
+            ##check logic
+            # ids=[ id.split('v')[0] for id in pdf_list ]
 
+            # not_downs=[]
+            # for id in tqdm(ids):
+            #     query = {
+            #         'query': {
+            #             'term': {
+            #                 "metadata.paper_id": id
+            #             }
+            #         }
+            #     }
+
+            #     response =doc.client.search(
+            #         body=query,
+            #         index='arxiv_test2'
+            #     )
+            #     if response['hits']['total']['value']==0:
+            #         not_downs.append(id)
+            
+            # not_downs.pop(not_downs.index("filelist.txt"))
+            # filtered_pdf_list=[]
+            # for x in pdf_list:
+            #     if x.split('v')[0] in not_downs:
+            #         filtered_pdf_list.append(x)
+            # response = doc.client.indices.clear_cache(index="arxiv_test2", fielddata=True)
+            ##check logic
             chunksize=2
 
             manager = Manager()
             shared_list = manager.list()
             process_map(partial(Wrapper, shared_list),pdf_list,max_workers=5,chunksize=chunksize)
-
+            # process_map(partial(Wrapper, shared_list),filtered_pdf_list,max_workers=5,chunksize=chunksize)
             # text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
-            text_splitter = TokenTextSplitter(model_name="text-embedding-ada-002",allowed_special={"<|endoftext|>"},chunk_size=250, chunk_overlap=0)
+            text_splitter = TokenTextSplitter(model_name="text-embedding-ada-002",disallowed_special=(),chunk_size=250, chunk_overlap=0)
             texts = text_splitter.split_documents(list(shared_list))
 
             r=len(texts) // 4000
@@ -118,6 +161,9 @@ if __name__ == "__main__":
                 if end>len_texts:
                     end=len_texts
                 splitted_texts.append(texts[start:end])
+
+           
+            
             for splitted_text in tqdm(splitted_texts):
 
                 docsearch = OpenSearchVectorSearch.from_documents(
@@ -133,6 +179,11 @@ if __name__ == "__main__":
                     bulk_size=8000
                 )
                 time.sleep(60)
+                response = docsearch.client.indices.clear_cache(index="arxiv_test2", fielddata=True)
+                
+                
+
+
             # manager2 = Manager()
             # shared_list2 = manager2.list()
             # # process_map(partial(num_tokens_from_doc, shared_list2),texts,max_workers=5,chunksize=chunksize)
@@ -145,4 +196,5 @@ if __name__ == "__main__":
             # with open(file_name, 'a') as file:
             #     data = "%lf\n" %(price)
             #     file.write(data)
+
     
